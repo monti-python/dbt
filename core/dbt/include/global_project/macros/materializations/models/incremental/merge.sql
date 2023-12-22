@@ -9,6 +9,7 @@
     {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
     {%- set merge_update_columns = config.get('merge_update_columns') -%}
     {%- set merge_exclude_columns = config.get('merge_exclude_columns') -%}
+    {%- set merge_update_expressions = config.get('merge_update_expressions') -%}
     {%- set update_columns = get_merge_update_columns(merge_update_columns, merge_exclude_columns, dest_columns) -%}
     {%- set sql_header = config.get('sql_header', none) -%}
 
@@ -39,7 +40,11 @@
     {% if unique_key %}
     when matched then update set
         {% for column_name in update_columns -%}
-            {{ column_name }} = DBT_INTERNAL_SOURCE.{{ column_name }}
+            {%- if column_name in merge_update_expressions %}
+                {{ column_name }} = {{ merge_update_expressions[column_name] }}
+            {%- else %}
+                {{ column_name }} = DBT_INTERNAL_SOURCE.{{ column_name }}
+            {%- endif %}
             {%- if not loop.last %}, {%- endif %}
         {%- endfor %}
     {% endif %}
